@@ -36,7 +36,7 @@ echo -e "${RED}Hasta la vista, baby${NC}"
 }
 trap _exit 0
 
-echo "Onliner deployement script"
+echo "Deployement script"
 
 function operations() {
 #clear
