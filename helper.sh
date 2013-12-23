@@ -46,6 +46,7 @@ echo -e "${RED}Please choose an action?
 ${GREEN}1. Deploy
 ${RED}=========
 ${GREEN}
+95. Swith all projects to master
 96. Change permissions
 97. Check disc space
 98. Clear screen
@@ -105,6 +106,16 @@ case $op in
             ;;
         esac
         cd $script_path
+    ;;
+    "95" )
+            cd $script_path/config/
+            for i in *.cfg; do
+                . $i
+                echo "Switch project" ${i%\.*}
+                cd $project_path
+                git checkout -f master
+                composer --no-dev update
+            done
     ;;
     "96" )
         echo "Change premissions"
