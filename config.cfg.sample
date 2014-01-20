@@ -1,3 +1,4 @@
 #general
 base_path=/var/www
 script_path=$PWD
+queue_project=''

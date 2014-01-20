@@ -34,7 +34,7 @@ function _exit() {
 clear
 echo -e "${RED}Hasta la vista, baby${NC}"
 }
-#trap _exit 0
+trap _exit 0
 
 echo "Deployement script"
 
@@ -126,10 +126,12 @@ case $op in
 	    fi
 	    echo "Starting $threads_count queue(s) at $project_path/vendor/bin/resque"
 	    QUEUE=* COUNT=$threads_count php $project_path/vendor/bin/resque > /dev/null &
-      	fi
+      	else
+	    echo "Config file for projects libb2b or b2b-acp not found"
+	fi
     ;;
     "94" )
-	pkill -f resque
+	pkill -f "bin/resque"
     ;;
     "95" )
             cd $script_path/config/
