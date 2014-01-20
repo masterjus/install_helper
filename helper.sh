@@ -110,12 +110,11 @@ case $op in
         cd $script_path
     ;;
     "93" )
-	if [ -f $script_path/config/libb2b.cfg ] 
+	if [ -f $script_path/config/$queue_project.cfg ] 
 	then
-	    . $script_path/config/libb2b.cfg
-	elif [ -f $script_path/config/b2b-acp.cfg ] 
-	then
-	    . $script_path/config/b2b-acp.cfg
+	    . $script_path/config/$queue_project.cfg
+	else
+	    echo "Config file for projects libb2b or b2b-acp not found"
 	fi
 	
 	if [ $project_path ] 
@@ -126,9 +125,7 @@ case $op in
 	    fi
 	    echo "Starting $threads_count queue(s) at $project_path/vendor/bin/resque"
 	    QUEUE=* COUNT=$threads_count php $project_path/vendor/bin/resque > /dev/null &
-      	else
-	    echo "Config file for projects libb2b or b2b-acp not found"
-	fi
+       	fi
     ;;
     "94" )
 	pkill -f "bin/resque"
