@@ -34,7 +34,7 @@ function _exit() {
 clear
 echo -e "${RED}Hasta la vista, baby${NC}"
 }
-trap _exit 0
+#trap _exit 0
 
 echo "Deployement script"
 
@@ -46,6 +46,8 @@ echo -e "${RED}Please choose an action?
 ${GREEN}1. Deploy
 ${RED}=========
 ${GREEN}
+93. Run queue
+94. Stop all queues
 95. Swith all projects to master
 96. Change permissions
 97. Check disc space
@@ -106,6 +108,28 @@ case $op in
             ;;
         esac
         cd $script_path
+    ;;
+    "93" )
+	if [ -f $script_path/config/libb2b.cfg ] 
+	then
+	    . $script_path/config/libb2b.cfg
+	elif [ -f $script_path/config/b2b-acp.cfg ] 
+	then
+	    . $script_path/config/b2b-acp.cfg
+	fi
+	
+	if [ $project_path ] 
+	then
+	    read -r -p "Processes count [1] => " threads_count
+	    if [ "$threads_count" == '' ]; then
+		threads_count=1;
+	    fi
+	    echo "Starting $threads_count queue(s) at $project_path/vendor/bin/resque"
+	    QUEUE=* COUNT=$threads_count php $project_path/vendor/bin/resque > /dev/null &
+      	fi
+    ;;
+    "94" )
+	pkill -f resque
     ;;
     "95" )
             cd $script_path/config/
