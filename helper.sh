@@ -13,7 +13,7 @@ CAYAN='\033[1;36m'
 green='\033[0;32m'
 GREEN='\033[1;32m'
 NC='\033[0m' # No Color
-# --> Nice. 
+# --> Nice.
 
 if [ -f config.cfg ]; then
     . config.cfg
@@ -46,6 +46,7 @@ echo -e "${RED}Please choose an action?
 ${GREEN}1. Deploy
 ${RED}=========
 ${GREEN}
+92. Clean up branches
 93. Run queue
 94. Stop all queues
 95. Swith all projects to master
@@ -109,15 +110,47 @@ case $op in
         esac
         cd $script_path
     ;;
+    "92" )
+        git fetch -p
+
+        read -r -p "Remove local branches? [y/N] => " response
+        response=${response,,}
+        if [[ $response =~ ^(yes|y)$ ]]; then
+          DELETE=1
+        else
+          DELETE=0
+        fi
+
+        REMOTE_BRANCHES="`mktemp`"
+        LOCAL_BRANCHES="`mktemp`"
+        DANGLING_BRANCHES="`mktemp`"
+        git for-each-ref --format="%(refname)" refs/remotes/origin/ | \
+          sed 's#^refs/remotes/origin/##' > "$REMOTE_BRANCHES"
+        git for-each-ref --format="%(refname)" refs/heads/ | \
+          sed 's#^refs/heads/##' > "$LOCAL_BRANCHES"
+        grep -vxF -f "$REMOTE_BRANCHES" "$LOCAL_BRANCHES" | \
+          sort -V > "$DANGLING_BRANCHES"
+        rm -f "$REMOTE_BRANCHES" "$LOCAL_BRANCHES"
+
+        if [[ $DELETE -ne 0 ]]; then
+          cat "$DANGLING_BRANCHES" | while read -r B; do
+            git branch -D "$B"
+          done
+        else
+          cat "$DANGLING_BRANCHES"
+        fi
+        rm -f "$DANGLING_BRANCHES"
+        git branch
+    ;;
     "93" )
-	if [ -f $script_path/config/$queue_project.cfg ] 
+	if [ -f $script_path/config/$queue_project.cfg ]
 	then
 	    . $script_path/config/$queue_project.cfg
 	else
 	    echo "Config file for projects libb2b or b2b-acp not found"
 	fi
-	
-	if [ $project_path ] 
+
+	if [ $project_path ]
 	then
 	    read -r -p "Processes count [1] => " threads_count
 	    if [ "$threads_count" == '' ]; then
@@ -165,7 +198,7 @@ check_folder() {
         echo "Folder name is not specified"
         return 0
     fi
-    
+
     if [ -d "$1" ]
         then
             echo -n "The folder $1 exists"
@@ -192,4 +225,3 @@ projects_list() {
 operations
 echo
 exit 0
-
