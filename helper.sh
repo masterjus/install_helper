@@ -111,36 +111,53 @@ case $op in
         cd $script_path
     ;;
     "92" )
-        git fetch -p
+      echo "What project to clean-up?"
+      read -r -p '<l> for list=> ' action
+      case $action in
+          "l" )
+            projects_list
+            read -p '=> ' action
+          ;;&
+          * )
+            if [ -r $script_path/config/$action.cfg ]; then
+              #Load config
+              . $script_path/config/$action.cfg
+              cd $project_path && git fetch -p
 
-        read -r -p "Remove local branches? [y/N] => " response
-        response=${response,,}
-        if [[ $response =~ ^(yes|y)$ ]]; then
-          DELETE=1
-        else
-          DELETE=0
-        fi
+              read -r -p "Remove local branches? [y/N] => " response
+              response=${response,,}
+              if [[ $response =~ ^(yes|y)$ ]]; then
+              DELETE=1
+              else
+              DELETE=0
+              fi
 
-        REMOTE_BRANCHES="`mktemp`"
-        LOCAL_BRANCHES="`mktemp`"
-        DANGLING_BRANCHES="`mktemp`"
-        git for-each-ref --format="%(refname)" refs/remotes/origin/ | \
-          sed 's#^refs/remotes/origin/##' > "$REMOTE_BRANCHES"
-        git for-each-ref --format="%(refname)" refs/heads/ | \
-          sed 's#^refs/heads/##' > "$LOCAL_BRANCHES"
-        grep -vxF -f "$REMOTE_BRANCHES" "$LOCAL_BRANCHES" | \
-          sort -V > "$DANGLING_BRANCHES"
-        rm -f "$REMOTE_BRANCHES" "$LOCAL_BRANCHES"
+              REMOTE_BRANCHES="`mktemp`"
+              LOCAL_BRANCHES="`mktemp`"
+              DANGLING_BRANCHES="`mktemp`"
+              git for-each-ref --format="%(refname)" refs/remotes/origin/ | \
+              sed 's#^refs/remotes/origin/##' > "$REMOTE_BRANCHES"
+              git for-each-ref --format="%(refname)" refs/heads/ | \
+              sed 's#^refs/heads/##' > "$LOCAL_BRANCHES"
+              grep -vxF -f "$REMOTE_BRANCHES" "$LOCAL_BRANCHES" | \
+              sort -V > "$DANGLING_BRANCHES"
+              rm -f "$REMOTE_BRANCHES" "$LOCAL_BRANCHES"
 
-        if [[ $DELETE -ne 0 ]]; then
-          cat "$DANGLING_BRANCHES" | while read -r B; do
-            git branch -D "$B"
-          done
-        else
-          cat "$DANGLING_BRANCHES"
-        fi
-        rm -f "$DANGLING_BRANCHES"
-        git branch
+              if [[ $DELETE -ne 0 ]]; then
+              cat "$DANGLING_BRANCHES" | while read -r B; do
+              git branch -D "$B"
+              done
+              else
+              cat "$DANGLING_BRANCHES"
+              fi
+              rm -f "$DANGLING_BRANCHES"
+              git branch
+            else
+                  #pwd
+                echo -e "${RED}Конфигурационный файл для проекта $action не найден!${NC}"
+            fi
+          ;;
+      esac
     ;;
     "93" )
 	if [ -f $script_path/config/$queue_project.cfg ]
