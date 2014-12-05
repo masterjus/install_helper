@@ -15,11 +15,11 @@ GREEN='\033[1;32m'
 NC='\033[0m' # No Color
 # --> Nice.
 
-if [ -f config.cfg ]; then
-    . config.cfg
+if [ -f $PWD/config.cfg ]; then
+    . $PWD/config.cfg
   else
-  if [ -r helper/config.cfg ]; then
-    . helper/config.cfg
+  if [ -r $PWD/helper/config.cfg ]; then
+    . $PWD/helper/config.cfg
   else
     echo -e "${RED}Конфигурационный файл не найден!${NC}"
     exit 0
@@ -183,7 +183,7 @@ case $op in
     "95" )
             cd $script_path/config/
             for i in *.cfg; do
-                . $i
+                . $script_path/config/$i
                 echo "Switch project" ${i%\.*}
                 cd $project_path
                 git checkout -f master
