@@ -187,7 +187,8 @@ case $op in
                 echo "Switch project" ${i%\.*}
                 cd $project_path
                 git checkout -f master
-                composer --no-dev update
+                git pull origin master
+                composer update
             done
     ;;
     "96" )
