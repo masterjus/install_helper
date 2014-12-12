@@ -15,18 +15,19 @@ GREEN='\033[1;32m'
 NC='\033[0m' # No Color
 # --> Nice.
 
-if [ -f $PWD/config.cfg ]; then
-    . $PWD/config.cfg
+script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if [ -f $script_path/config.cfg ]; then
+    . $script_path/config.cfg
   else
-  if [ -r $PWD/helper/config.cfg ]; then
-    . $PWD/helper/config.cfg
+  if [ -r $script_path/helper/config.cfg ]; then
+    . $script_path/helper/config.cfg
   else
     echo -e "${RED}Конфигурационный файл не найден!${NC}"
     exit 0
   fi
 fi
 
-check_folder config
+check_folder $script_path/config
 
 clear
 
@@ -186,9 +187,17 @@ case $op in
                 . $script_path/config/$i
                 echo "Switch project" ${i%\.*}
                 cd $project_path
+                git fetch -p
                 git checkout -f master
-                git pull origin master
-                composer update
+                LOCAL=$(git rev-parse master)
+                BASE=$(git rev-parse origin/master)
+                if [ "$LOCAL" != "$BASE" ]; then
+                    git pull origin master
+                    composer update
+                fi
+                if [ -f Gruntfile.js ]; then
+                    grunt deploy
+                fi
             done
     ;;
     "96" )
