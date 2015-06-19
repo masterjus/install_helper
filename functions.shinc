@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+# Define some colors first:
+red='\033[0;31m'
+RED='\033[1;31m'
+blue='\033[0;34m'
+BLUE='\033[1;34m'
+cayan='\033[0;36m'
+CAYAN='\033[1;36m'
+green='\033[0;32m'
+GREEN='\033[1;32m'
+NC='\033[0m' # No Color
+# --> Nice.
+
+function _exit() {
+clear
+echo -e "${RED}Hasta la vista, baby${NC}"
+};
+
+function _back() {
+    cd $script_path;
+}
+
+check_folder() {
+    if [ -z "$1" ]
+        then
+        echo "Folder name is not specified"
+        return 0
+    fi
+
+    if [ -d "$1" ]
+        then
+            echo -n "The folder $1 exists"
+            echo
+        else
+            echo -n "Trying to create a folder $1"
+            echo
+            mkdir $1
+            check_folder $1
+    fi
+
+    return 0
+};
+
+projects_list() {
+  cd config/;
+  echo -e "${BLUE}Available projects:${GREEN}"
+  for i in *.cfg; do
+    echo ${i%\.*};
+  done
+  echo -e ${NC}
+};
+
+clear_branches() {
+  if [ -r $script_path/config/$1.cfg ]; then
+    #Load config
+    . $script_path/config/$1.cfg
+    cd $project_path && git fetch -p
+
+    if [ "$2" != '--force' ]; then
+      read -r -p "Clean up local branches? [y/N] => " response
+      response=${response,,}
+      if [[ $response =~ ^(yes|y)$ ]]; then
+      DELETE=1
+      else
+      DELETE=0
+      fi
+    fi
+
+    REMOTE_BRANCHES="`mktemp`"
+    LOCAL_BRANCHES="`mktemp`"
+    DANGLING_BRANCHES="`mktemp`"
+    git for-each-ref --format="%(refname)" refs/remotes/origin/ | \
+    sed 's#^refs/remotes/origin/##' > "$REMOTE_BRANCHES"
+    git for-each-ref --format="%(refname)" refs/heads/ | \
+    sed 's#^refs/heads/##' > "$LOCAL_BRANCHES"
+    grep -vxF -f "$REMOTE_BRANCHES" "$LOCAL_BRANCHES" | \
+    sort -V > "$DANGLING_BRANCHES"
+    rm -f "$REMOTE_BRANCHES" "$LOCAL_BRANCHES"
+
+    if [[ $DELETE -ne 0 ]]; then
+    cat "$DANGLING_BRANCHES" | while read -r B; do
+    git branch -D "$B"
+    done
+    else
+    cat "$DANGLING_BRANCHES"
+    fi
+    rm -f "$DANGLING_BRANCHES"
+    git branch
+  else
+      echo -e "${RED}Конфигурационный файл для проекта $action не найден!${NC}"
+  fi
+};

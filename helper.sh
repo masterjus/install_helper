@@ -3,6 +3,8 @@
 # Author: Eugene Kirdzei
 # Description: Universal script for updates
 
+
+
 # Define some colors first:
 red='\033[0;31m'
 RED='\033[1;31m'
@@ -27,14 +29,12 @@ if [ -f $script_path/config.cfg ]; then
   fi
 fi
 
+. $script_path/functions.shinc
+
 check_folder $script_path/config
 
 clear
 
-function _exit() {
-clear
-echo -e "${RED}Hasta la vista, baby${NC}"
-}
 trap _exit 0
 
 echo "Deployement script"
@@ -64,6 +64,7 @@ KEY=$(date +%y-%m-%d_%H-%M)
 
 case $op in
     "1" )
+    echo $script_path
         echo "What project to deploy?"
         read -r -p '<l> for list=> ' action
 
@@ -96,15 +97,14 @@ case $op in
                         response=${response,,}
                         if [[ $response =~ ^(yes|y)$ ]]; then
                             if hash composer 2> /dev/null; then
-                              composer --no-dev update
+                              composer --no-dev install
                             else
-                              php composer.phar --no-dev update
+                              php composer.phar --no-dev install
                             fi
                         fi
                     ;;
                 esac
               else
-                    #pwd
                   echo -e "${RED}Конфигурационный файл для проекта $action не найден!${NC}"
               fi
             ;;
@@ -113,52 +113,39 @@ case $op in
     ;;
     "92" )
       echo "What project to clean-up?"
-      read -r -p '<l> for list=> ' action
-      case $action in
-          "l" )
-            projects_list
-            read -p '=> ' action
-          ;;&
-          * )
-            if [ -r $script_path/config/$action.cfg ]; then
-              #Load config
-              . $script_path/config/$action.cfg
-              cd $project_path && git fetch -p
 
-              read -r -p "Remove local branches? [y/N] => " response
-              response=${response,,}
-              if [[ $response =~ ^(yes|y)$ ]]; then
-              DELETE=1
-              else
-              DELETE=0
-              fi
+      cleanup_actions() {
+          if [ "$1" != '' ]; then
+            action=$1
+          else
+            read -r -p '<l> for list => ' action
+          fi
 
-              REMOTE_BRANCHES="`mktemp`"
-              LOCAL_BRANCHES="`mktemp`"
-              DANGLING_BRANCHES="`mktemp`"
-              git for-each-ref --format="%(refname)" refs/remotes/origin/ | \
-              sed 's#^refs/remotes/origin/##' > "$REMOTE_BRANCHES"
-              git for-each-ref --format="%(refname)" refs/heads/ | \
-              sed 's#^refs/heads/##' > "$LOCAL_BRANCHES"
-              grep -vxF -f "$REMOTE_BRANCHES" "$LOCAL_BRANCHES" | \
-              sort -V > "$DANGLING_BRANCHES"
-              rm -f "$REMOTE_BRANCHES" "$LOCAL_BRANCHES"
+          case $action in
+              "l" )
+                projects_list
+                read -p '<all> for all projects => ' action
+                cleanup_actions $action
+              ;;
+              "all" )
+                cd $script_path/config/
+                for i in *.cfg; do
+                    . $script_path/config/$i
+                    echo "Clean up the" ${i%\.*}
+                    . $script_path/functions.shinc
 
-              if [[ $DELETE -ne 0 ]]; then
-              cat "$DANGLING_BRANCHES" | while read -r B; do
-              git branch -D "$B"
-              done
-              else
-              cat "$DANGLING_BRANCHES"
-              fi
-              rm -f "$DANGLING_BRANCHES"
-              git branch
-            else
-                  #pwd
-                echo -e "${RED}Конфигурационный файл для проекта $action не найден!${NC}"
-            fi
-          ;;
-      esac
+                    clear_branches ${i%\.*} --force
+                done
+              ;;
+              * )
+                . $script_path/functions.shinc
+
+                clear_branches $action
+              ;;
+          esac
+      }
+
+      cleanup_actions
     ;;
     "93" )
 	if [ -f $script_path/config/$queue_project.cfg ]
@@ -182,23 +169,37 @@ case $op in
 	pkill -f "bin/resque"
     ;;
     "95" )
-            cd $script_path/config/
-            for i in *.cfg; do
-                . $script_path/config/$i
-                echo "Switch project" ${i%\.*}
-                cd $project_path
-                git fetch -p
-                git checkout -f master
-                LOCAL=$(git rev-parse master)
-                BASE=$(git rev-parse origin/master)
-                if [ "$LOCAL" != "$BASE" ]; then
-                    git pull origin master
-                    composer update
-                fi
-                if [ -f Gruntfile.js ]; then
-                    grunt deploy
-                fi
-            done
+        cd $script_path/config/
+
+        read -r -p "Cleanup branches? [Y/n] => " response
+        response=${response,,}
+        if [[ $response =~ ^(no|n|N)$ ]]; then
+            cleanup_branches=0
+        else
+            cleanup_branches=1
+        fi
+
+        for i in *.cfg; do
+            . $script_path/config/$i
+            echo -e "${GREEN}Switch project" ${i%\.*} "${NC}"
+            cd $project_path
+            git fetch -p
+            git checkout -f master
+            LOCAL=$(git rev-parse master)
+            BASE=$(git rev-parse origin/master)
+            if [ "$LOCAL" != "$BASE" ]; then
+                git pull origin master
+                composer install
+            fi
+            if [ -f Gruntfile.js ]; then
+                grunt deploy
+            fi
+
+            if [ $cleanup_branches -ne 0 ]; then
+                echo -e "${BLUE}Cleanup branches${NC}"
+                clear_branches ${i%\.*} --force
+            fi
+        done
     ;;
     "96" )
         echo "Change premissions"
@@ -216,39 +217,11 @@ case $op in
         exit 0
     ;;
 esac
+
+_back
 operations
-}
-
-check_folder() {
-    if [ -z "$1" ]
-        then
-        echo "Folder name is not specified"
-        return 0
-    fi
-
-    if [ -d "$1" ]
-        then
-            echo -n "The folder $1 exists"
-            echo
-        else
-            echo -n "Trying to create a folder $1"
-            echo
-            mkdir $1
-            check_folder $1
-    fi
-
-    return 0
-}
-
-projects_list() {
-  cd config/;
-  echo -e "${BLUE}Available projects:${GREEN}"
-  for i in *.cfg; do
-    echo ${i%\.*};
-  done
-  echo -e ${NC}
-}
+};
 
 operations
 echo
-exit 0
+_exit 0
