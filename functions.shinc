@@ -57,6 +57,7 @@ clear_branches() {
     . $script_path/config/$1.cfg
     cd $project_path && git fetch -p
 
+    DELETE=1
     if [ "$2" != '--force' ]; then
       read -r -p "Clean up local branches? [y/N] => " response
       response=${response,,}
@@ -80,6 +81,7 @@ clear_branches() {
 
     if [[ $DELETE -ne 0 ]]; then
     cat "$DANGLING_BRANCHES" | while read -r B; do
+    git checkout -f master
     git branch -D "$B"
     done
     else
