@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 # --> Nice.
 
 script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-if [ -f $script_path/config.cfg ]; then
+if [ -f "$script_path/config.cfg" ]; then
     . $script_path/config.cfg
   else
   if [ -r $script_path/helper/config.cfg ]; then
@@ -29,7 +29,7 @@ if [ -f $script_path/config.cfg ]; then
   fi
 fi
 
-. $script_path/functions.shinc
+. "$script_path/functions.shinc"
 
 check_folder $script_path/config
 
